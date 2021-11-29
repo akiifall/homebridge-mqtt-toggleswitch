@@ -145,7 +145,7 @@ class ToggleSwitch implements AccessoryPlugin {
         }  
 
         if (setValue == true) {
-          this.deviceService.getCharacteristic(Characteristic.On).updateValue(this.deviceOnOff, undefined, 'fromSetValue');
+          this.deviceService.updateCharacteristic(this.api.hap.Characteristic.On, this.deviceOnOff);
           setValue = false;
           this.log.info("Set status to : " + this.deviceOnOff);
         }
