@@ -19,7 +19,6 @@
             "topicCommand": "home/command",
             "onCommand": "{\"Command\":\"setOn\"}",
             "offCommand": "{\"Command\": \"setOff\"}",
-            "statusCommand": "{\"Command\": \"getStatus\"}",
             "onValue": "ON",
             "offValue": "OFF"
         }
