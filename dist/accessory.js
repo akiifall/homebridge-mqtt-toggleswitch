@@ -6,7 +6,6 @@ let hap;
 const mqtt_1 = __importDefault(require("mqtt"));
 class ToggleSwitch {
     constructor(log, config, api) {
-        this.deviceOnOff = false;
         this.log = log;
         this.api = api;
         this.deviceName = config.name;
@@ -20,6 +19,7 @@ class ToggleSwitch {
         this.topicCommand = config.topicCommand;
         this.onCommand = config.onCommand;
         this.offCommand = config.offCommand;
+        this.statusCommand = config.statusCommand;
         this.onValue = config.onValue;
         this.offValue = config.offValue;
         this.informationService = new hap.Service.AccessoryInformation()
@@ -55,41 +55,33 @@ class ToggleSwitch {
         log.info(this.deviceName + " plugin loaded.");
     }
     getOnHandler(callback) {
-        callback(null, this.deviceOnOff);
+        let jsonCommand = this.statusCommand;
+        this.mqttClient.publish(this.topicCommand, jsonCommand);
+        callback(null, this.deviceService.getCharacteristic(this.api.hap.Characteristic.On).value);
     }
     setOnHandler(value, callback) {
-        if (this.deviceOnOff != value) {
-            let jsonCommand;
-            if (value == true) {
-                jsonCommand = this.onCommand;
-            }
-            else {
-                jsonCommand = this.offCommand;
-            }
-            this.deviceOnOff = value;
-            this.mqttClient.publish(this.topicCommand, jsonCommand);
-            callback(null);
+        let jsonCommand;
+        if (value == true) {
+            jsonCommand = this.onCommand;
         }
+        else {
+            jsonCommand = this.offCommand;
+        }
+        this.mqttClient.publish(this.topicCommand, jsonCommand);
+        callback(null);
     }
     setMqttEvent() {
         this.mqttClient.on("message", (topic, message) => {
             if (topic === this.topicStatus) {
                 let jsonData = JSON.parse(message.toString());
                 let deviceStatus = jsonData.DeviceStatus;
-                let setValue = false;
-                if (deviceStatus == this.onValue && this.deviceOnOff == false) {
-                    this.deviceOnOff = true;
-                    setValue = true;
+                if (deviceStatus == this.onValue) {
+                    this.deviceService.updateCharacteristic(this.api.hap.Characteristic.On, true);
                 }
-                if (deviceStatus == this.offValue && this.deviceOnOff == true) {
-                    this.deviceOnOff = false;
-                    setValue = true;
+                else {
+                    this.deviceService.updateCharacteristic(this.api.hap.Characteristic.On, false);
                 }
-                if (setValue == true) {
-                    this.deviceService.updateCharacteristic(this.api.hap.Characteristic.On, this.deviceOnOff);
-                    setValue = false;
-                    this.log.info("Set status to : " + this.deviceOnOff);
-                }
+                this.log.info("Set status to : " + deviceStatus);
             }
         });
         this.mqttClient.on("connect", () => {

@@ -45,10 +45,9 @@ class ToggleSwitch implements AccessoryPlugin {
   private topicCommand: string;
   private onCommand: string;
   private offCommand: string;
+  private statusCommand: string;
   private onValue: string;
   private offValue: string;
-
-  private deviceOnOff = false;
 
   constructor(log: Logging, config: AccessoryConfig, api: API) {
     this.log = log;
@@ -65,6 +64,7 @@ class ToggleSwitch implements AccessoryPlugin {
     this.topicCommand = config.topicCommand;
     this.onCommand = config.onCommand;
     this.offCommand = config.offCommand;
+    this.statusCommand = config.statusCommand;
     this.onValue = config.onValue;
     this.offValue = config.offValue;
     
@@ -108,47 +108,38 @@ class ToggleSwitch implements AccessoryPlugin {
   }
 
 	getOnHandler (callback: any) {
-		callback(null, this.deviceOnOff);
+    let jsonCommand: string = this.statusCommand;
+    this.mqttClient.publish(this.topicCommand,jsonCommand);
+		callback(null, this.deviceService.getCharacteristic(this.api.hap.Characteristic.On).value);
 	}
 
 	setOnHandler (value: CharacteristicValue, callback: any) {
-    if (this.deviceOnOff != value) {
-      let jsonCommand: string;
+    let jsonCommand: string;
 
-      if (value == true) {
-        jsonCommand = this.onCommand;
-      }
-      else {
-        jsonCommand = this.offCommand;
-      }
-      this.deviceOnOff = value as boolean;
-      this.mqttClient.publish(this.topicCommand,jsonCommand);
-      callback(null);  
+    if (value == true) {
+      jsonCommand = this.onCommand;
     }
-	}
+    else {
+      jsonCommand = this.offCommand;
+    }
+    this.mqttClient.publish(this.topicCommand,jsonCommand);
+    callback(null);  
+  }
 
   setMqttEvent() {
     this.mqttClient.on("message", (topic: string, message: Buffer) => {
       if (topic === this.topicStatus) {
         let jsonData = JSON.parse(message.toString());
         let deviceStatus = jsonData.DeviceStatus;
-        let setValue = false;
 
-        if (deviceStatus == this.onValue && this.deviceOnOff == false) {
-            this.deviceOnOff = true;
-            setValue = true;
+        if (deviceStatus == this.onValue) {
+          this.deviceService.updateCharacteristic(this.api.hap.Characteristic.On, true);
         }
-        
-        if (deviceStatus == this.offValue && this.deviceOnOff == true) {
-            this.deviceOnOff = false;
-            setValue = true;
-        }  
+        else {
+          this.deviceService.updateCharacteristic(this.api.hap.Characteristic.On, false);
+        }
 
-        if (setValue == true) {
-          this.deviceService.updateCharacteristic(this.api.hap.Characteristic.On, this.deviceOnOff);
-          setValue = false;
-          this.log.info("Set status to : " + this.deviceOnOff);
-        }
+        this.log.info("Set status to : " + deviceStatus);
       }
     });
 

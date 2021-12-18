@@ -1,1 +1,1 @@
-personal use only. sorry :)
+- Toggle Switch Accessory with Local MQTT Server
