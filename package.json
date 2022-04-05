@@ -1,6 +1,6 @@
 {
   "name": "homebridge-mqtt-toggleswitch",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "general switch accessory plugin for homebridge written in Typescript",
   "main": "dist/accessory.js",
   "scripts": {
